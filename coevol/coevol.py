@@ -13,6 +13,7 @@ try:
 	import pandas as pd
 	from Bio import SeqIO
 	from scipy import linalg, stats
+	from scipy.cluster.vq import kmeans2
 except:
 	print('ERROR: required libraries could not be loaded')
 
@@ -264,9 +265,9 @@ class mca:
 		y = self.y_adj
 		variance = 100*y/y.sum()
 		if mode is None:
-			return np.fliplr(variance)
+			return np.flipud(variance)
 		else:
-			return np.fliplr(variance)[mode]
+			return np.flipud(variance)[mode]
 
 	def proj_row(self):
 		"""Summary
@@ -405,12 +406,12 @@ class mca:
 			return np.fliplr(self.V)[:,mode]
 	def eval(self, mode=None):
 		if mode is None:
-			return np.fliplr(self.y_adj)
+			return np.flipud(self.y_adj)
 		else:
 			return np.flipud(self.y_adj)[mode]
 	def eval_raw(self, mode=None):
 		if mode is None:
-			return np.fliplr(self.y)
+			return np.flipud(self.y)
 		else:
 			return np.flipud(self.y)[mode]
 	def score_row(self, mode=None):
@@ -476,6 +477,15 @@ class mca:
 		self.I = I
 		self.pval = pval
 		return I
+
+	def cluster(self, k, n_iter=10):
+		I = self.I
+		theta = np.fliplr(self.theta)[:,0:I]
+
+		centroid, group = kmeans2(theta, k = k, iter=n_iter, thresh=1e-05, minit='random', missing='warn', check_finite=True)
+
+		self.group = group
+		self.centroid = centroid
 
 
 """

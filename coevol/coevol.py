@@ -400,31 +400,55 @@ class mca:
 			self.proj_feat()
 
 	def evec(self, mode=None):
+		"""
+		Summary
+		Quickly return first eigenvector according to the mode selected
+		"""
 		if mode is None:
 			return np.fliplr(self.V)
 		else:
 			return np.fliplr(self.V)[:,mode]
 	def eval(self, mode=None):
+		"""
+		Summary
+		Quickly return first eigenvalue according to the mode selected
+		"""
 		if mode is None:
 			return np.flipud(self.y_adj)
 		else:
 			return np.flipud(self.y_adj)[mode]
 	def eval_raw(self, mode=None):
+		"""
+		Summary
+		Quickly return first corrected eigenvalue according to the mode selected
+		"""
 		if mode is None:
 			return np.flipud(self.y)
 		else:
 			return np.flipud(self.y)[mode]
 	def score_row(self, mode=None):
+		"""	
+		Summary
+		Quickly return the row projection corresponding to the selected mode
+		"""
 		if mode is None:
 			return np.fliplr(self.theta)
 		else:
 			return np.fliplr(self.theta)[:,mode]
 	def score_col(self, mode=None):
+		"""	
+		Summary
+		Quickly return the column projection corresponding to the selected mode
+		"""
 		if mode is None:
 			return np.fliplr(self.psi)
 		else:
 			return np.fliplr(self.psi)[:,mode]
 	def score_feat(self, mode=None):
+		"""	
+		Summary
+		Quickly return the feature projection corresponding to the selected mode
+		"""
 		if mode is None:
 			return np.fliplr(self.omega)
 		else:
@@ -572,12 +596,12 @@ def filter_col_gaps(data, cutoff=0.1):
 	cutoff : float
 		if gaps occur greater than or equal to this cutoff frequence, then the column will be removed
 	"""
-    mask = data == '-'
-    n_row = float(data.shape[0])
-    count = mask.astype(int).sum(axis=0)
-    freq = count / n_row
-    mask_keep = freq < cutoff
-    return data[:, mask_keep]
+	mask = (data == '-')
+	n_row = float(data.shape[0])
+	count = mask.astype(int).sum(axis=0)
+	freq = count / n_row
+	mask_keep = freq < cutoff
+	return data[:, mask_keep]
 
 
 def parse_aln(filein, style='fasta'):
@@ -591,14 +615,14 @@ def parse_aln(filein, style='fasta'):
 	style : str
 		format of the sequence alignment (only 'fasta' has been tested, other formats compatible with Biopython should work)
 	"""
-    obj = SeqIO.parse(filein, style)
-    fa = [x for x in obj]
-    n_pos = np.max([len(x.seq) for x in fa])
-    n_seq = len(fa)
-    arr = np.empty((n_seq, n_pos)).astype('str')
-    for i in xrange(n_seq):
-        arr[i,] = list(fa[i].seq)
-    return arr
+	obj = SeqIO.parse(filein, style)
+	fa = [x for x in obj]
+	n_pos = np.max([len(x.seq) for x in fa])
+	n_seq = len(fa)
+	arr = np.empty((n_seq, n_pos)).astype('str')
+	for i in xrange(n_seq):
+		arr[i,] = list(fa[i].seq)
+	return arr
 
 
 def write_aln(ids, arr, fileout, style='fasta'):
@@ -620,13 +644,13 @@ def write_aln(ids, arr, fileout, style='fasta'):
 		ids = np.asarray(ids)
 	if isinstance(arr, np.ndarray) == False:
 		ids = np.asarray(ids)
-    aln = []
-    for x, y in zip(ids.tolist(), arr.tolist()):
-        seq = ''.join(y)
-        seq = Seq.Seq(seq, Alphabet.SingleLetterAlphabet())
-        id = x
-        aln.append(SeqIO.SeqRecord(seq=seq, id=id, name=id, description=''))
-    SeqIO.write(aln, fileout, style)
+	aln = []
+	for x, y in zip(ids.tolist(), arr.tolist()):
+		seq = ''.join(y)
+		seq = Seq.Seq(seq, Alphabet.SingleLetterAlphabet())
+		id = x
+		aln.append(SeqIO.SeqRecord(seq=seq, id=id, name=id, description=''))
+	SeqIO.write(aln, fileout, style)
 
 
 def parse_lbl(filein, schar=None, index=0, style='fasta', sfmt='|S128'):
@@ -646,13 +670,13 @@ def parse_lbl(filein, schar=None, index=0, style='fasta', sfmt='|S128'):
 	sfmt : str
 		format for ndarray where labels will be placed. if size is too small or too large for entire label, increase by specifying size here
 	"""
-    obj = SeqIO.parse(filein, style)
-    fa = [x for x in obj]
-    n_seq = len(fa)
-    arr = np.empty((n_seq,), dtype='|S128')
-    for i in xrange(n_seq):
-        if schar is None:
-            arr[i] = fa[i].id
-        else:
-            arr[i] = fa[i].id.split(schar)[index]
-    return arr
+	obj = SeqIO.parse(filein, style)
+	fa = [x for x in obj]
+	n_seq = len(fa)
+	arr = np.empty((n_seq,), dtype='|S128')
+	for i in xrange(n_seq):
+		if schar is None:
+			arr[i] = fa[i].id
+		else:
+			arr[i] = fa[i].id.split(schar)[index]
+	return arr

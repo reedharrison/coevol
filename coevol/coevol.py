@@ -11,7 +11,7 @@ try:
 	import os as os
 	import numpy as np
 	import pandas as pd
-	from Bio import SeqIO
+	from Bio import SeqIO, Seq, Alphabet
 	from scipy import linalg, stats
 	from scipy.cluster.vq import kmeans2
 except:
@@ -182,9 +182,9 @@ class mca:
 			true number of 
 		phi : (optional)
 			feaure matrix describing whether an arbitrary feature is present in each row of X
-		proj_row :
+		row :
 			project rows onto principle axes if True
-		proj_col :
+		col :
 			project columns onto principle axes if True
 		tol:
 			eigenvalues falling within the range of 1-tol<y<1+tol will be discarded as trivial
@@ -193,7 +193,7 @@ class mca:
 		self.phi, self.key_lbl = binarize(phi, axis=1, lbl=True)
 		self.row = row
 		self.col = col
-		self.tol = tol
+		self.tol = np.abs(tol)
 
 		self.L 	= W.shape[1]
 		self.N 	= W.shape[0]
@@ -473,7 +473,7 @@ class mca:
 			pval[i-1] = results[1]
 
 		mask = (pval < alpha)
-		I = np.where(mask==False)[0][0]
+		I = np.where(mask==False)[0][0] # First occurance of False indicates number of principle axes to be used!
 		self.I = I
 		self.pval = pval
 		return I
@@ -560,3 +560,99 @@ def binarize(data, axis=1, lbl=False):
 		return (container, lbls)
 	else:
 		return container
+
+def filter_col_gaps(data, cutoff=0.1):
+	"""Summary
+	Function accepts a sequence alignment and removes all columns (sequence positions) where gaps occur >= [cutoff] frequency.
+
+	Parameters
+	----------
+	data : ndarray
+		ndarray from numpy containing sequence alignment (columns are positions, rows are sequences)
+	cutoff : float
+		if gaps occur greater than or equal to this cutoff frequence, then the column will be removed
+	"""
+    mask = data == '-'
+    n_row = float(data.shape[0])
+    count = mask.astype(int).sum(axis=0)
+    freq = count / n_row
+    mask_keep = freq < cutoff
+    return data[:, mask_keep]
+
+
+def parse_aln(filein, style='fasta'):
+	"""Summary
+	Function parses a sequence alignment into a numpy array
+
+	Parameters
+	----------
+	filein : str
+		full path to file containing sequence alignment
+	style : str
+		format of the sequence alignment (only 'fasta' has been tested, other formats compatible with Biopython should work)
+	"""
+    obj = SeqIO.parse(filein, style)
+    fa = [x for x in obj]
+    n_pos = np.max([len(x.seq) for x in fa])
+    n_seq = len(fa)
+    arr = np.empty((n_seq, n_pos)).astype('str')
+    for i in xrange(n_seq):
+        arr[i,] = list(fa[i].seq)
+    return arr
+
+
+def write_aln(ids, arr, fileout, style='fasta'):
+	"""Summary
+	Function will write a sequence alignment to file from numpy arrays containing the ids and sequences
+
+	Parameters
+	----------
+	ids : list or ndarray
+		Array of ids corresponding to each row of sequence array. If provided as a list, it will be coerced to an ndarray.
+	arr : list or ndarray
+		Array of sequences (one character per element). If provided as a list, it will be coerced to an ndarray.
+	fileout : str
+		Full path where sequence alignment should be written
+	style : str
+		String specifying format of style to be written. Must agree with options from Biopython. (Currently only "fasta" tested)
+	"""
+	if isinstance(ids, np.ndarray) == False:
+		ids = np.asarray(ids)
+	if isinstance(arr, np.ndarray) == False:
+		ids = np.asarray(ids)
+    aln = []
+    for x, y in zip(ids.tolist(), arr.tolist()):
+        seq = ''.join(y)
+        seq = Seq.Seq(seq, Alphabet.SingleLetterAlphabet())
+        id = x
+        aln.append(SeqIO.SeqRecord(seq=seq, id=id, name=id, description=''))
+    SeqIO.write(aln, fileout, style)
+
+
+def parse_lbl(filein, schar=None, index=0, style='fasta', sfmt='|S128'):
+	"""Summary
+	Function to parse a label designation from a header in a sequence alignment (must be in id field).
+
+	Parameters
+	----------
+	filein : str
+		file containing sequence alignment
+	schar : str or None
+		character to split header on. if None, headers are not split and entire header is returned.
+	index : int or None
+		python index for element of the list (following string splitting) containing desired label.
+	style : str
+		string for format of file to be read (must be compatible with Biopython)
+	sfmt : str
+		format for ndarray where labels will be placed. if size is too small or too large for entire label, increase by specifying size here
+	"""
+    obj = SeqIO.parse(filein, style)
+    fa = [x for x in obj]
+    n_seq = len(fa)
+    arr = np.empty((n_seq,), dtype='|S128')
+    for i in xrange(n_seq):
+        if schar is None:
+            arr[i] = fa[i].id
+        else:
+            arr[i] = fa[i].id.split(schar)[index]
+    return arr
